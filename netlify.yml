@@ -1,9 +1,3 @@
-# File: .github/workflows/netlify.yml
-# GitHub Actions workflow for:
-# 1. Basic code security checks
-# 2. Linting
-# 3. Deploying static site to Netlify
-
 name: CI + Security + Netlify Deploy
 
 on:
@@ -17,12 +11,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout repository
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 2: Basic security scan (dependency + code scan)
-      - name: Run GitHub CodeQL Init
+      # Security scan
+      - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: javascript
@@ -30,8 +23,8 @@ jobs:
       - name: Run CodeQL Analysis
         uses: github/codeql-action/analyze@v3
 
-      # Step 3: Basic lint check (HTML/JS)
-      - name: Install Node.js
+      # Lint checks
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -40,15 +33,13 @@ jobs:
         run: |
           npm install -g htmlhint eslint
 
-      - name: Run HTML security/lint check
-        run: |
-          htmlhint . || true
+      - name: HTML check
+        run: htmlhint . || true
 
-      - name: Run JS security/lint check
-        run: |
-          eslint . || true
+      - name: JS check
+        run: eslint . || true
 
-      # Step 4: Deploy to Netlify
+      # Deploy to Netlify
       - name: Deploy to Netlify
         uses: nwtgck/actions-netlify@v3.0
         with:
@@ -56,9 +47,6 @@ jobs:
           production-branch: main
           github-token: ${{ secrets.GITHUB_TOKEN }}
           deploy-message: "Auto deploy from GitHub Actions"
-          enable-pull-request-comment: true
-          enable-commit-comment: true
-          overwrites-pull-request-comment: true
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
