@@ -1,27 +1,53 @@
-name: "CodeQL"
+name: Deploy to EC2
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
 
 jobs:
-  analyze:
-    name: Analyze
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    # Step 1: Checkout Repository
+    - name: Checkout Code
+      uses: actions/checkout@v4
 
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: 'javascript'   # dummy language for static sites
+    # Step 2: Login to DockerHub
+    - name: Login to DockerHub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Autobuild
-        run: echo "No build step needed for static site"
+    # Step 3: Pull Your Docker Image
+    - name: Pull Docker Image
+      run: docker pull kiransekarc/my-website:latest
 
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+    # Step 4: SSH into EC2 and Deploy
+    - name: SSH and Deploy
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        port: 22
+        script: |
+          echo "Stopping existing container..."
+          sudo docker stop myapp || true
+          
+          echo "Removing old container..."
+          sudo docker rm myapp || true
+          
+          echo "Pulling latest image..."
+          sudo docker pull kiransekarc/my-website:latest
+          
+          echo "Starting new container..."
+          sudo docker run -d \
+            -p 80:80 \
+            --restart always \
+            --name myapp \
+            kiransekarc/my-website:latest
+          
+          echo "Deployment completed successfully!"
